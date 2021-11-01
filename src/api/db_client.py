@@ -1,22 +1,18 @@
 import psycopg2
 
-conn = psycopg2.connect("dbname=postgres user=postgres password=postgres")
 
-# create a cursor
-cur = conn.cursor()
+class DBClient:
+    def __init__(self, dbname, user, password, host):
+        self.connection = psycopg2.connect(f"dbname={dbname} user={user} password={password} host={host}")
 
-# execute a statement
-print('PostgreSQL database version:')
-# query = 'CREATE TABLE user_example(ID INT PRIMARY KEY NOT NULL, NAME TEXT NOT NULL, AGE INT NOT NULL);'
-# cur.execute(query)
-query2 = 'INSERT INTO user_example(name, age) VALUES (%s, %s, %s);'
-values = (0, "rodrigo", 24)
-cur.execute(query2, values)
+    def execute_query(self, query, values=None):
+        cur = self.connection.cursor()
 
-cur.close()
-# commit the changes
-conn.commit()
+        # query = 'CREATE TABLE user_example(ID INT PRIMARY KEY NOT NULL, NAME TEXT NOT NULL, AGE INT NOT NULL);'
+        # query2 = 'INSERT INTO user_example(id, name, age) VALUES (%s, %s, %s);'
+        # values = (0, "rodrigo2", 25)
+        cur.execute(query, values)
 
-# # display the PostgreSQL database server version
-# db_version = cur.fetchone()
-# print(db_version)
+        cur.close()
+        # commit the changes
+        self.connection.commit()

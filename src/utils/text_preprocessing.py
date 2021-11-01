@@ -2,7 +2,7 @@ import csv
 import os
 import re
 import codecs
-from text_utils import normalize_string
+from .text_utils import normalize_string
 
 
 class Vocabulary:
