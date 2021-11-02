@@ -53,6 +53,38 @@ class Vocabulary:
         for word in keep_words:
             self.add_word(word)
 
+    def indexes_from_sentence(self, sentence):
+        return [self.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+
+    def trim_rare_words(self, pairs, min_sentence_length):
+        # Trim words used under the MIN_COUNT from the voc
+        self.trim(min_sentence_length)
+        # Filter out pairs with trimmed words
+        keep_pairs = []
+        for pair in pairs:
+            input_sentence = pair[0]
+            output_sentence = pair[1]
+            keep_input = True
+            keep_output = True
+            # Check input sentence
+            for word in input_sentence.split(' '):
+                if word not in self.word2index:
+                    keep_input = False
+                    break
+            # Check output sentence
+            for word in output_sentence.split(' '):
+                if word not in self.word2index:
+                    keep_output = False
+                    break
+
+            # Only keep pairs that do not contain trimmed word(s) in their input or output sentence
+            if keep_input and keep_output:
+                keep_pairs.append(pair)
+
+        print("Trimmed from {} pairs to {}, {:.4f} of total".format(len(pairs), len(keep_pairs),
+                                                                    len(keep_pairs) / len(pairs)))
+        return keep_pairs
+
 
 # Turn a Unicode string to plain ASCII, thanks to
 # https://stackoverflow.com/a/518232/2809427

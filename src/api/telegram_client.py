@@ -1,5 +1,3 @@
-# 1347095513:AAExt4kUogFel6ZOlxVDvalbW4DcNvosvl8
-
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 from src.config import TELEGRAM_BOT_TOKEN

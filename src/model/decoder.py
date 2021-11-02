@@ -25,7 +25,8 @@ class Attn(nn.Module):
         return torch.sum(self.v * energy, dim=2)
 
     # Luong attention layer
-    def dot_score(self, hidden, encoder_output):
+    @staticmethod
+    def dot_score(hidden, encoder_output):
         return torch.sum(hidden * encoder_output, dim=2)
 
     def forward(self, hidden, encoder_outputs):
