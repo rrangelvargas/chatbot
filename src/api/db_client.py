@@ -13,6 +13,10 @@ class DBClient:
         # values = (0, "rodrigo2", 25)
         cur.execute(query, values)
 
+        result = cur.fetchall()
+
         cur.close()
         # commit the changes
         self.connection.commit()
+
+        return result

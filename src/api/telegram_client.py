@@ -2,7 +2,7 @@
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
-from src.utils import TELEGRAM_BOT_TOKEN
+from src.config import TELEGRAM_BOT_TOKEN
 
 
 class Client:
