@@ -37,6 +37,8 @@ class Attn(nn.Module):
             attn_energies = self.concat_score(hidden, encoder_outputs)
         elif self.method == 'dot':
             attn_energies = self.dot_score(hidden, encoder_outputs)
+        else:
+            raise Exception('Method not implemented!')
 
         # Transpose max_length and batch_size dimensions
         attn_energies = attn_energies.t()

@@ -154,7 +154,7 @@ class Model:
         _ = nn.utils.clip_grad_norm_(self.encoder.parameters(), self.clip)
         _ = nn.utils.clip_grad_norm_(self.decoder.parameters(), self.clip)
 
-        # Adjust model weights
+        # Adjust ml_model weights
         self.encoder_optimizer.step()
         self.decoder_optimizer.step()
 

@@ -5,14 +5,13 @@ import random
 
 import torch
 
-from src.api import DBClient
+from src import PostgresClient
 import codecs
 from src.utils import Vocabulary, normalize_string, PAD_token
-from src.config import POSTGRES_DB, POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD
 
 
-def zero_padding(sentences, fillvalue=PAD_token):
-    return list(itertools.zip_longest(*sentences, fillvalue=fillvalue))
+def zero_padding(sentences, fill_value=PAD_token):
+    return list(itertools.zip_longest(*sentences, fillvalue=fill_value))
 
 
 def binary_matrix(sentences, value=PAD_token):
@@ -32,10 +31,6 @@ class DataProcessor:
             self,
             encoding='iso-8859-1',
             batch_size=5,
-            database=POSTGRES_DB,
-            db_user=POSTGRES_USER,
-            db_password=POSTGRES_PASSWORD,
-            db_host=POSTGRES_HOST
     ):
         self.encoding = encoding
         self.batch_size = batch_size
@@ -43,24 +38,25 @@ class DataProcessor:
         self.max_sentence_length = 10
         self.min_sentence_length = 3
         self.vocabulary = Vocabulary()
-        self.db_client = DBClient(database, db_user, db_password, db_host)
+        self.db_client = PostgresClient
 
     # Extracts pairs of sentences from conversations
     def extract_sentence_pairs(self, start_date=None, end_date=None):
         query = '''
-            SELECT cl.conversation_id, cl.line_id, cl.line_index, l.text
-            FROM conversation_line AS cl
-            LEFT JOIN line AS l ON cl.line_id=l.id
+            SELECT cm.conversation_id, cm.message_id, cm.message_index, m.text
+            FROM conversation_message AS cm
+            LEFT JOIN message AS m ON cm.message_id=m.id
+            LEFT JOIN conversation c on cm.conversation_id = c.id
         '''
 
         if start_date:
-            query += f" WHERE l.start_date>={start_date}"
+            query += f" WHERE c.started_at>={start_date}"
         if end_date:
-            query += f" AND l.end_date <={end_date}"
+            query += f" AND c.ended_at <={end_date}"
 
         query += '''
-            GROUP BY cl.conversation_id, cl.line_id, cl.line_index, l.text
-            ORDER BY cl.conversation_id, cl.line_index
+            GROUP BY cm.conversation_id, cm.message_id, cm.message_index, m.text
+            ORDER BY cm.conversation_id, cm.message_index
         '''
 
         qa_pairs = []
@@ -174,63 +170,3 @@ class DataProcessor:
 
     def get_batches(self, pairs):
         return self.get_batch_to_train([random.choice(pairs) for _ in range(self.batch_size)])
-
-
-# def create_database():
-#     C = DBClient(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST)
-# #     # C.execute_query('ALTER TABLE line ALTER COLUMN id TYPE TEXT;')
-# #     C.execute_query('DROP TABLE conversation CASCADE;')
-# #     C.execute_query('DROP TABLE conversation_line;')
-# #     C.execute_query('DROP TABLE line;')
-#     C.execute_query('CREATE TABLE conversation(ID SERIAL PRIMARY KEY NOT NULL);')
-#     C.execute_query('''
-#     CREATE TABLE conversation_line(
-#     ID SERIAL PRIMARY KEY,
-#     CONVERSATION_ID INT NOT NULL,
-#     LINE_ID TEXT NOT NULL,
-#     LINE_INDEX INT NOT NULL,
-#     CONSTRAINT fk_conversation FOREIGN KEY(CONVERSATION_ID) REFERENCES conversation(ID),
-#     CONSTRAINT fk_line FOREIGN KEY(LINE_ID) REFERENCES line(ID)
-#     );
-#     ''')
-# #     # t = "(10, 'teste'), (11, 'teste2')"
-# #     C.execute_query('DELETE FROM conversation WHERE id=2')
-# #     # C.execute_query('INSERT INTO line(text) VALUES(%s);', ("teste3",))
-
-
-# # Splits each line of the file into a dictionary of fields
-# def load_lines(file_name):
-#     c = DBClient(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST)
-#     query_str = ""
-#     with open(file_name, 'r', encoding='iso-8859-1') as f:
-#         for line in f:
-#             values = line.split(" +++$+++ ")
-#             query_str += f"{values[0], normalize_string(values[4])}, "
-#     query_str = f"INSERT INTO line(id, text) VALUES {query_str[:-2]};"
-#     c.execute_query(query_str)
-
-
-# # Groups fields of lines from `loadLines` into conversations based on *movie_conversations.txt*
-# def load_conversations(file_name):
-#     c = DBClient(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST)
-#     with open(file_name, 'r', encoding='iso-8859-1') as f:
-#         i = 1
-#         conv_query = ""
-#         conv_lin_query = ""
-#         for line in f:
-#             conv_query += f"({i}), "
-#             values = line.split(" +++$+++ ")
-#
-#             utterance_id_pattern = re.compile('L[0-9]+')
-#             line_ids = utterance_id_pattern.findall(values[3])
-#             for j in range(len(line_ids)):
-#                 conv_lin_query += f"{i, line_ids[j], j}, "
-#             i += 1
-#     c.execute_query(f"INSERT INTO conversation(id) VALUES {conv_query[:-2]};")
-#     c.execute_query(f"INSERT INTO conversation_line(conversation_id, line_id, line_index) VALUES {conv_lin_query[:-2]};")
-
-# collect_conversation()
-
-# load_lines('data/movie_lines.txt')
-# load_conversations('data/movie_conversations.txt')
-# create_database()
