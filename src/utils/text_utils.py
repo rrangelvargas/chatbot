@@ -2,6 +2,8 @@ import re
 import unicodedata
 
 # Default word tokens
+from datetime import datetime
+
 PAD_token = 0  # Used for padding short sentences
 SOS_token = 1  # Start-of-sentence token
 EOS_token = 2  # End-of-sentence token
@@ -54,7 +56,7 @@ class Vocabulary:
             self.add_word(word)
 
     def indexes_from_sentence(self, sentence):
-        return [self.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+        return [self.word2index[word] for word in separate_punctuation(sentence).split(' ')] + [EOS_token]
 
     def trim_rare_words(self, pairs, min_sentence_length):
         # Trim words used under the MIN_COUNT from the voc
@@ -102,3 +104,31 @@ def normalize_string(s):
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     s = re.sub(r"\s+", r" ", s).strip()
     return s
+
+
+def separate_punctuation(s):
+    s = s.replace("?", " ?")
+    s = s.replace(".", " .")
+    s = s.replace("!", " !")
+    return s
+
+
+def format_answer(answer):
+    s = ''
+    for i in range(len(answer)):
+        if answer[i] == "EOS":
+            break
+        s = f'{s} {answer[i]}'
+    s = s.replace(" t ", "'t ")
+    s = s.replace(" m ", "'m ")
+    s = s.replace(" re ", "'re ")
+    s = s.replace(" s ", "'s ")
+    s = s.replace(" ?", "?")
+    s = s.replace(" .", ".")
+    s = s.replace(" !", "!")
+
+    return s
+
+
+def datetime_to_timestamp(datetime_obj: datetime):
+    return datetime_obj.strftime("%Y-%m-%d %H:%M:%S.%f")

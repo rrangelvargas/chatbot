@@ -1,5 +1,6 @@
 venv/
 data/
+postgres-data/
 .idea
 *.pyc
 *.env

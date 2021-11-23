@@ -1,10 +1,13 @@
-from dataclasses import dataclass
-import typing as T
+import json
+from dataclasses import dataclass, asdict
+from datetime import datetime
 from .message import Message
 from .conversation import Conversation
 from .user import User
 from src import PostgresClient
-from src.utils import count_messages, count_conversations
+from src.utils import count_messages, count_conversations, datetime_to_timestamp
+import typing as T
+from psycopg2.extras import Json
 
 
 @dataclass
@@ -13,43 +16,41 @@ class Session:
     id: int
     current_conversation: Conversation
     user: User
-    last_message: Message
+    last_message: T.Optional[Message]
 
-    def __init__(self, session_id: int, current_conversation: Conversation, user: User, last_message: Message):
+    def __init__(
+            self,
+            session_id: int,
+            current_conversation: Conversation,
+            user: User,
+            last_message: T.Optional[Message]
+    ):
         self.id = session_id
         self.current_conversation = current_conversation
         self.user = user
         self.last_message = last_message
 
-        query = f'''
-            INSERT INTO session(id, user_id, current_conversation_id, last_message_id, las_message_date)
-            VALUES {
-                self.id,
-                self.user.id,
-                self.current_conversation.id,
-                self.last_message.id,
-                self.last_message.sent_at
-            };
-        '''
+        self.create_new_session()
 
-        PostgresClient.execute_query(query)
+    def new_message(self, message: str, user_id: int, sent_at: datetime):
+        new_message = Message(count_messages()+1, message, user_id, sent_at)
 
-    def new_message(self, message):
-        new_message = Message(count_messages()+1, message)
-
-        if new_message.sent_at.hour - self.last_message.sent_at.hour > 1:
+        if self.last_message and new_message.sent_at.hour - self.last_message.sent_at.hour > 1:
             update_conversation = f'''
                 UPDATE conversation
-                SET ended_at = {self.last_message.sent_at}
-                WHERE id = {self.current_conversation.id};
+                SET ended_at = '{datetime_to_timestamp(self.last_message.sent_at)}'
+                WHERE id = {self.current_conversation.id}
+                RETURNING id;
             '''
             PostgresClient.execute_query(update_conversation)
 
             new_conversation = Conversation(count_conversations()+1)
 
             create_new_conversation = f'''
-                INSERT INTO conversation(session_id, ended_at, started_at, id)
-                VALUES {self.id, None, new_conversation.started_at, new_conversation.id};            
+                INSERT INTO conversation(session_id, started_at, id)
+                VALUES {self.id, datetime_to_timestamp(new_conversation.started_at), new_conversation.id}
+                ON CONFLICT DO NOTHING
+                RETURNING id;            
             '''
 
             PostgresClient.execute_query(create_new_conversation)
@@ -58,11 +59,58 @@ class Session:
 
             update_session = f'''
                 UPDATE session
-                SET current_conversation_id = {self.current_conversation.id}
-                WHERE id = {self.id};
+                SET current_conversation_id = {self.current_conversation.id},
+                    data = '{json.dumps(asdict(self), default=str)}'
+                WHERE id = {self.id}
+                RETURNING id;
             '''
             PostgresClient.execute_query(update_session)
 
         self.current_conversation.add_message(new_message, self.id)
         self.last_message = new_message
 
+        update_session_last_message = f'''
+            UPDATE session
+            SET last_message_id = {new_message.id},
+                data = '{json.dumps(asdict(self), default=str)}'
+            WHERE id = {self.id}
+            RETURNING id;
+        '''
+        PostgresClient.execute_query(update_session_last_message)
+
+    def create_new_session(self):
+        new_session = f'''
+            INSERT INTO session(id, user_id, current_conversation_id, data)
+            VALUES {
+                self.id,
+                self.user.user_id,
+                self.current_conversation.id,
+                json.dumps(asdict(self), default=str)
+            }
+            ON CONFLICT DO NOTHING
+            RETURNING id;
+        '''
+
+        PostgresClient.execute_query(new_session)
+
+        new_user = f'''
+            INSERT INTO telegram_user(id, session_id, username, first_name, last_name)
+            VALUES {self.user.user_id, self.id, self.user.username, self.user.first_name, self.user.last_name}
+            ON CONFLICT DO NOTHING
+            RETURNING id;        
+        '''
+
+        PostgresClient.execute_query(new_user)
+
+        new_conversation = f'''
+            INSERT INTO conversation(id, session_id, started_at)
+            VALUES {
+                self.current_conversation.id,
+                self.id,
+                datetime_to_timestamp(self.current_conversation.started_at)
+            }
+            ON CONFLICT DO NOTHING
+            RETURNING id;
+        '''
+
+        PostgresClient.execute_query(new_conversation)

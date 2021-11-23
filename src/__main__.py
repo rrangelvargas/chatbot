@@ -1,8 +1,6 @@
-from ml_model import Model
+from api import Client
+from config import TELEGRAM_BOT_TOKEN
 
-model = Model()
-
-model.run('data/input/pairs.csv', 'data/output/cb_model/2-2_500/4000_checkpoint.tar')
-
-model.evaluate_input()
-# ml_model.train()
+if __name__ == "__main__":
+    client = Client(TELEGRAM_BOT_TOKEN)
+    client.run()

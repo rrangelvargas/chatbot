@@ -219,7 +219,7 @@ class Model:
                     'embedding': self.embedding.state_dict()
                 }, os.path.join(directory, f'{iteration}_checkpoint.tar'))
 
-    def evaluate(self, searcher, sentence):
+    def evaluate(self, sentence):
         # Format input sentence as a batch
         # words -> indexes
         indexes_batch = [self.processor.vocabulary.indexes_from_sentence(sentence)]
@@ -231,7 +231,7 @@ class Model:
         input_batch = input_batch.to(self.device)
         lengths = lengths.to("cpu")
         # Decode sentence with searcher
-        tokens, scores = searcher(input_batch, lengths, self.processor.max_sentence_length)
+        tokens, scores = self.searchDecoder(input_batch, lengths, self.processor.max_sentence_length)
         # indexes -> words
         decoded_words = [self.processor.vocabulary.index2word[token.item()] for token in tokens]
         return decoded_words
