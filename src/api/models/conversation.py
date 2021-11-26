@@ -9,8 +9,8 @@ from src.utils import datetime_to_timestamp
 @dataclass
 class Conversation:
     id: int
-    messages: T.List[Message]
-    started_at: datetime
+    messages: T.List[Message] = []
+    started_at: datetime = datetime.now()
 
     def __init__(self, conversation_id: int):
         self.id = conversation_id
