@@ -1,5 +1,5 @@
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import typing as T
 from .message import Message
 from src import PostgresClient
@@ -9,13 +9,8 @@ from src.utils import datetime_to_timestamp
 @dataclass
 class Conversation:
     id: int
-    messages: T.List[Message] = []
+    messages: T.List[Message] = field(default_factory=list)
     started_at: datetime = datetime.now()
-
-    def __init__(self, conversation_id: int):
-        self.id = conversation_id
-        self.started_at = datetime.now()
-        self.messages = []
 
     def add_message(self, message: Message, session_id: int):
         self.messages.append(message)

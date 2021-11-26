@@ -7,7 +7,7 @@ from .user import User
 from src import PostgresClient
 from src.utils import count_messages, count_conversations, datetime_to_timestamp
 import typing as T
-from psycopg2.extras import Json
+from src.utils import normalize_string
 
 
 @dataclass
@@ -33,7 +33,7 @@ class Session:
         self.create_new_session()
 
     def new_message(self, message: str, user_id: int, sent_at: datetime):
-        new_message = Message(count_messages()+1, message, user_id, sent_at)
+        new_message = Message(count_messages()+1, normalize_string(message), user_id, sent_at)
 
         if self.last_message and new_message.sent_at.hour - self.last_message.sent_at.hour > 1:
             update_conversation = f'''
