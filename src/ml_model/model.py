@@ -1,3 +1,4 @@
+import datetime
 import os
 import random
 
@@ -51,7 +52,7 @@ class Model:
             learning_rate: taxa de aprendizado
             decoder_learning_ratio: taxa de aprendizado do decoder
             n_iteration: número de iterações do treinamento
-            print_every: intervalo de tempo para escrever o andamento do treinamento no terminal
+            print_every: intervalo de iterações para escrever o andamento do treinamento no terminal
             save_every: número de iterações antes salvar o ponto atual
         """
         self.device = torch.device('cuda' if USE_CUDA else 'cpu')
@@ -87,17 +88,19 @@ class Model:
         self.searchDecoder = None
 
         self.training_data = None
-        self.processor.process_data('data/result.csv')
+        self.processor.process_data('data/input/result.csv')
 
-    def collect_data(self, start_date, end_date, filename):
+    def collect_data(self, start_date, end_date, filename, retrain=False):
         """
         método para coletar dados para o treinamento
         Args:
             start_date: data de inicio dos dados a serem extraidos do banco
             end_date: data de fim dos dados a serem extraidos do banco
             filename: nome do arquivo de saída
+            retrain: flag para decidir se vai haver um retreinamento
+
         """
-        self.processor.process_data(filename, start_date, end_date)
+        self.processor.process_data(filename, start_date, end_date, retrain)
 
     def mask_loss(self, inp, target, mask):
         n_total = mask.sum()
@@ -205,6 +208,8 @@ class Model:
 
         # Training loop
         print("Training...")
+        losses = []
+
         for iteration in range(start_iteration, self.n_iteration + 1):
             training_batch = training_batches[iteration - 1]
             # Extract fields from batch
@@ -226,6 +231,8 @@ class Model:
                 print('''Iteration: {}; Percent complete: {:.1f}%; Average loss: {:.4f}
                 '''.format(iteration, iteration / self.n_iteration * 100, print_loss_avg))
 
+                losses.append(print_loss_avg)
+
                 print_loss = 0
 
             # Save checkpoint
@@ -244,6 +251,8 @@ class Model:
                     'voc_dict': self.processor.vocabulary.__dict__,
                     'embedding': self.embedding.state_dict()
                 }, os.path.join(directory, f'{iteration}_checkpoint.tar'))
+
+        return losses
 
     def evaluate(self, sentence):
         # Format input sentence as a batch
@@ -362,4 +371,7 @@ class Model:
 
         # Run training iterations
         print("Starting Training!")
-        self.train_iterators(self.training_data, save_dir)
+        t = datetime.datetime.now().replace(microsecond=0)
+        losses = self.train_iterators(self.training_data, save_dir)
+        print(f'Elapsed time: {datetime.datetime.now().replace(microsecond=0) - t}')
+        return losses

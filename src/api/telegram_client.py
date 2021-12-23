@@ -115,14 +115,11 @@ class Client:
         self.handle_message(update, answer)
         context.bot.send_message(chat_id=update.effective_chat.id, text=answer)
 
-    def train(self, update, context):
-        '''
+    def train(self):
+        """
         método para responder o comando \train e treinar o bot novamente
-        Args:
-            update: última atualização da conversa
-            context: contexto da conversa
-        '''
-        pass
+        """
+        self.ml_client.collect_data(start_date=None, end_date=None, filename='data/input/result.csv', retrain=True)
 
     def send_message(self, update, context):
         """
@@ -132,16 +129,21 @@ class Client:
             context: contexto da conversa
         """
 
-        try:
-            # obtendo resposta da rede neural
-            answer = format_answer(self.ml_client.evaluate(update.message.text))
-        except KeyError:
-            #caso a rede neural não consiga responder
-            answer = "Desculpe, não consegui entender"
-            # answer = "Sorry, i couldn't understand."
+        if self.sessions[update.effective_chat.id].correct_answer:
+            self.handle_message(update, '')
+            answer = "Ok, vou lembrar disso para um próxima vez!"
+            self.sessions[update.effective_chat.id].correct_answer = False
+        else:
+            try:
+                # obtendo resposta da rede neural
+                answer = format_answer(self.ml_client.evaluate(update.message.text))
+                # método para salvar a nova mensagem no banco de dados
+                self.handle_message(update, answer)
+            except KeyError:
+                # caso a rede neural não consiga responder
+                answer = "Desculpe, não consegui entender, pode me informar o que eu deveria respoder?"
+                self.sessions[update.effective_chat.id].correct_answer = True
 
-        # método para salvar a nova mensagem no abnco de dados
-        self.handle_message(update, answer)
         context.bot.send_message(chat_id=update.effective_chat.id, text=answer)
 
     def handle_message(self, update, answer):
@@ -149,8 +151,9 @@ class Client:
         método para salvar a nova conversa no banco de dados e atualizar a conversa e a sessão
         Args:
             update: última atualização da conversa
-            answer: mensagem à ser armazenada
+            answer: resposta à mensagem à ser armazenada
         """
+
         user_id = update.message.chat_id
 
         # verificando se já existe uma sessão para a quele usuário
@@ -180,7 +183,8 @@ class Client:
             # criando uma nova mensagem
             self.sessions[user_id].new_message(update.message.text, user_id, datetime.now())
 
-        self.sessions[user_id].new_message(answer, self.bot_id, datetime.now())
+        if answer != '':
+            self.sessions[user_id].new_message(answer, self.bot_id, datetime.now())
 
     def run(self):
         '''

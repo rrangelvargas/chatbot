@@ -19,11 +19,13 @@ class Session:
         current_conversation: atual conversa da sessão
         user: usuário associado à sessão
         last_message: última mensagem enviada na sessão
+        correct_answer: flag para determinar se o bot está recebendo a resposta correta para uma mensagem
     """
     id: int
     current_conversation: Conversation
     user: User
     last_message: T.Optional[Message]
+    correct_answer: bool
 
     def __init__(
             self,
@@ -44,6 +46,7 @@ class Session:
         self.current_conversation = current_conversation
         self.user = user
         self.last_message = last_message
+        self.correct_answer = False
 
         # criando a sessão no banco de dados
         self.create_new_session()

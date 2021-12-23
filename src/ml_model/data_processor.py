@@ -127,9 +127,10 @@ class DataProcessor:
             self,
             output_file,
             start_date=None,
-            end_date=None
+            end_date=None,
+            retrain=False
     ):
-        if not os.path.exists(output_file) or start_date:
+        if not os.path.exists(output_file) or retrain:
             self.format_text(output_file, start_date, end_date)
 
     def read_data(self, output_file):

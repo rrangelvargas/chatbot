@@ -165,7 +165,7 @@ def separate_punctuation(s):
     s = s.replace("?", " ?")
     s = s.replace(".", " .")
     s = s.replace("!", " !")
-    s = s.replace("  ", " ")
+    s = re.sub(r"\s+", r" ", s).strip()
     return s
 
 
