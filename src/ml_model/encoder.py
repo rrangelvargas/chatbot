@@ -2,7 +2,18 @@ import torch.nn as nn
 
 
 class EncoderRNN(nn.Module):
+    """
+    classe que define o modelo de encoder para a rede neural
+    """
     def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):
+        """
+        método de inicialização do encoder
+        Args:
+            hidden_size: tamanho da caamda oculta
+            embedding: embeding do modelo para redução de dimensão
+            n_layers: número de camadas
+            dropout: fator de dropout para reduzir overfitting
+        """
         super(EncoderRNN, self).__init__()
         self.n_layers = n_layers
         self.hidden_size = hidden_size
@@ -14,6 +25,15 @@ class EncoderRNN(nn.Module):
                           dropout=(0 if n_layers == 1 else dropout), bidirectional=True)
 
     def forward(self, input_seq, input_lengths, hidden=None):
+        """
+        método para enondar a sequência de entrada e preparar para a rede
+        Args:
+            input_seq: sequência de indíces das palavras de entrada
+            input_lengths: tamanho das palavras de entrada
+            hidden: última camada oculta
+
+        Returns: resultado da entrada codificada e o novo estado da camada oculta
+        """
         # Convert word indexes to embeddings
         embedded = self.embedding(input_seq)
         # Pack padded batch of sequences for RNN module

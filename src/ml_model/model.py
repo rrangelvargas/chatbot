@@ -354,6 +354,11 @@ class Model:
         print('Models built and ready to go!')
 
     def train(self, save_dir='data/output'):
+        """
+        método para treinar o modelo
+        Args:
+            save_dir: diretório para salvar o modelo após o treinamento
+        """
         # Ensure dropout layers are in train mode
         self.encoder.train()
         self.decoder.train()
