@@ -85,7 +85,6 @@ class DataProcessor:
                 for pair in self.extract_sentence_pairs(start_date, end_date):
                     writer.writerow(pair)
         else:
-            print(os.path)
             with open(output_file, 'w', encoding='utf-8') as output:
                 writer = csv.writer(output, delimiter=self.delimiter, lineterminator='\n')
                 for pair in self.extract_sentence_pairs():

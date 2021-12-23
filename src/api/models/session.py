@@ -12,7 +12,14 @@ from src.utils import normalize_string
 
 @dataclass
 class Session:
-
+    """
+    classe que define uma sessão entre o usuário e o bot
+    Args:
+        id: id da sessão
+        current_conversation: atual conversa da sessão
+        user: usuário associado à sessão
+        last_message: última mensagem enviada na sessão
+    """
     id: int
     current_conversation: Conversation
     user: User
@@ -25,11 +32,20 @@ class Session:
             user: User,
             last_message: T.Optional[Message]
     ):
+        """
+        método para inicializar uma nova sessão
+        Args:
+            session_id: id da nova sessão
+            current_conversation: atual conversa da nova sessão
+            user: usuário associado à sessão
+            last_message: última mensagem enviada na sessão
+        """
         self.id = session_id
         self.current_conversation = current_conversation
         self.user = user
         self.last_message = last_message
 
+        # criando a sessão no banco de dados
         self.create_new_session()
 
     def new_message(self, message: str, user_id: int, sent_at: datetime):
@@ -79,6 +95,11 @@ class Session:
         PostgresClient.execute_query(update_session_last_message)
 
     def create_new_session(self):
+        """
+        método para criar a sessão no banco de dados, o usuário associado e a nova conversa
+        """
+
+        # query para criar uma nova sessão
         new_session = f'''
             INSERT INTO session(id, user_id, current_conversation_id, data)
             VALUES {
@@ -93,6 +114,7 @@ class Session:
 
         PostgresClient.execute_query(new_session)
 
+        # query para criar um novo usuário
         new_user = f'''
             INSERT INTO telegram_user(id, session_id, username, first_name, last_name)
             VALUES {self.user.user_id, self.id, self.user.username, self.user.first_name, self.user.last_name}
@@ -102,6 +124,8 @@ class Session:
 
         PostgresClient.execute_query(new_user)
 
+
+        # query para criar a conversa
         new_conversation = f'''
             INSERT INTO conversation(id, session_id, started_at)
             VALUES {

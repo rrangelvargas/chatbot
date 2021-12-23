@@ -7,13 +7,16 @@ from torch import optim
 
 from src.utils import USE_CUDA, SOS_token, normalize_string
 
-from .data_processor import DataProcessor
-from .encoder import EncoderRNN
-from .decoder import LuongAttnDecoderRNN
-from .search_decoder import GreedySearchDecoder
+from src.ml_model.data_processor import DataProcessor
+from src.ml_model.encoder import EncoderRNN
+from src.ml_model.decoder import LuongAttnDecoderRNN
+from src.ml_model.search_decoder import GreedySearchDecoder
 
 
 class Model:
+    """
+    classe que define o modelo de rede neural a ser usado pelo robô
+    """
     def __init__(
             self,
             model_name='cb_model',
@@ -32,15 +35,32 @@ class Model:
             n_iteration=4000,
             print_every=1,
             save_every=500,
-            checkpoint_iter=4000
     ):
+        """
+        método de inicialização do modelo
+        Args:
+            model_name: nome do modelo
+            attn_model: Attention Model usado para definir o resultado
+            hidden_size: número de features na camada escondida da rede neural
+            encoder_n_layers: número de camadas do encoder
+            decoder_n_layers: número de camadas dod ecoder
+            dropout: fator de dropout para reduzir overfitting
+            batch_size: número de amostras para cada atualização do modelo
+            clip: fator de corte do gradiente
+            teacher_forcing_ratio: taxa de de uso da global truth para sobrescrever o output anterior no treinamento
+            learning_rate: taxa de aprendizado
+            decoder_learning_ratio: taxa de aprendizado do decoder
+            n_iteration: número de iterações do treinamento
+            print_every: intervalo de tempo para escrever o andamento do treinamento no terminal
+            save_every: número de iterações antes salvar o ponto atual
+        """
         self.device = torch.device('cuda' if USE_CUDA else 'cpu')
         self.processor = DataProcessor()
         self.encoder = None
         self.decoder = None
         self.embedding = None
 
-        # Configure models
+        # configurações do modelo
         self.model_name = model_name
         self.attn_model = attn_model
         self.hidden_size = hidden_size
@@ -49,7 +69,7 @@ class Model:
         self.dropout = dropout
         self.batch_size = batch_size
 
-        # Configure training/optimization
+        # configurações de treinamento / otimização
         self.clip = clip
         self.teacher_forcing_ratio = teacher_forcing_ratio
         self.learning_rate = learning_rate
@@ -58,7 +78,6 @@ class Model:
         self.print_every = print_every
         self.save_every = save_every
 
-        self.checkpoint_iter = checkpoint_iter
         self.checkpoint = None
         self.encoder_optimizer = None
         self.decoder_optimizer = None
@@ -68,9 +87,16 @@ class Model:
         self.searchDecoder = None
 
         self.training_data = None
-        self.processor.process_data('data/pairs.csv')
+        self.processor.process_data('data/result.csv')
 
     def collect_data(self, start_date, end_date, filename):
+        """
+        método para coletar dados para o treinamento
+        Args:
+            start_date: data de inicio dos dados a serem extraidos do banco
+            end_date: data de fim dos dados a serem extraidos do banco
+            filename: nome do arquivo de saída
+        """
         self.processor.process_data(filename, start_date, end_date)
 
     def mask_loss(self, inp, target, mask):
@@ -247,7 +273,7 @@ class Model:
                 # Normalize sentence
                 input_sentence = normalize_string(input_sentence)
                 # Evaluate sentence
-                output_words = self.evaluate(self.searchDecoder, input_sentence)
+                output_words = self.evaluate(input_sentence)
                 # Format and print response sentence
                 output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
                 print('Bot:', ' '.join(output_words))
