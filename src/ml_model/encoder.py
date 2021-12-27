@@ -9,8 +9,8 @@ class EncoderRNN(nn.Module):
         """
         método de inicialização do encoder
         Args:
-            hidden_size: tamanho da caamda oculta
-            embedding: embeding do modelo para redução de dimensão
+            hidden_size: tamanho da camada oculta
+            embedding: embedding do modelo para redução de dimensão
             n_layers: número de camadas
             dropout: fator de dropout para reduzir overfitting
         """

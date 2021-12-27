@@ -416,9 +416,8 @@ class Model:
         # Run training iterations
         print("Starting Training!")
         t = datetime.datetime.now().replace(microsecond=0)
-        losses = self.train_iterators(self.training_data, save_dir)
+        self.train_iterators(self.training_data, save_dir)
         print(f'Elapsed time: {datetime.datetime.now().replace(microsecond=0) - t}')
-        return losses
 
 
 def retrain_model(start_date=None, end_date=None):

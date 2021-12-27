@@ -153,22 +153,6 @@ def normalize_string(s):
     return s
 
 
-# def separate_punctuation(s):
-#     """
-#     método para separar a pontuação das palavras em uma string
-#     Args:
-#         s: string original
-#
-#     Returns: string com as potuações separadas
-#
-#     """
-#     s = s.replace("?", " ?")
-#     s = s.replace(".", " .")
-#     s = s.replace("!", " !")
-#     s = re.sub(r"\s+", r" ", s).strip()
-#     return s
-
-
 def format_answer(answer):
     '''
     método para formatar a resposta antes de enviar ao usuário
