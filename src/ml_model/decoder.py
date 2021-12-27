@@ -104,14 +104,12 @@ class LuongAttnDecoderRNN(nn.Module):
         """
         super(LuongAttnDecoderRNN, self).__init__()
 
-        # Keep for reference
         self.attn_model = attn_model
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.n_layers = n_layers
         self.dropout = dropout
 
-        # Define layers
         self.embedding = embedding
         self.embedding_dropout = nn.Dropout(dropout)
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
@@ -128,7 +126,7 @@ class LuongAttnDecoderRNN(nn.Module):
             last_hidden: última camada oculta
             encoder_outputs: sequência de entrada
 
-        Returns: resultado das pontuações de cada possível resposta e o novo estado da camada oculta
+        Returns: resultado com as pontuações das possíveis respostas e o último estado da camada oculta
         """
         # Note: we run this one step (word) at a time
         # Get embedding of current input word

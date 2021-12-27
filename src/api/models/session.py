@@ -5,9 +5,8 @@ from .message import Message
 from .conversation import Conversation
 from .user import User
 from src import PostgresClient
-from src.utils import count_messages, count_conversations, datetime_to_timestamp
+from src.utils import count_messages, count_conversations, datetime_to_timestamp, normalize_string
 import typing as T
-from src.utils import normalize_string
 
 
 @dataclass

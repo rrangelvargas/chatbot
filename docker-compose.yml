@@ -12,6 +12,8 @@ services:
       - "5432:5432"
   app:
     build: .
+    environment:
+      POSTGRES_HOST: db
     env_file:
       - .env
     depends_on:

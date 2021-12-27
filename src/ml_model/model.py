@@ -42,7 +42,7 @@ class Model:
         Args:
             model_name: nome do modelo
             attn_model: Attention Model usado para definir o resultado
-            hidden_size: número de features na camada escondida da rede neural
+            hidden_size: número de features na camada oculta da rede neural
             encoder_n_layers: número de camadas do encoder
             decoder_n_layers: número de camadas dod ecoder
             dropout: fator de dropout para reduzir overfitting
@@ -56,7 +56,7 @@ class Model:
             save_every: número de iterações antes salvar o ponto atual
         """
         self.device = torch.device('cuda' if USE_CUDA else 'cpu')
-        self.processor = DataProcessor()
+        self.processor = DataProcessor(batch_size=batch_size)
         self.encoder = None
         self.decoder = None
         self.embedding = None
@@ -88,7 +88,6 @@ class Model:
         self.searchDecoder = None
 
         self.training_data = None
-        self.processor.process_data('data/input/result.csv')
 
     def collect_data(self, start_date, end_date, filename, retrain=False):
         """
@@ -103,6 +102,16 @@ class Model:
         self.processor.process_data(filename, start_date, end_date, retrain)
 
     def mask_loss(self, inp, target, mask):
+        """
+        método para calcular a perda de uma dada entrada
+        Args:
+            inp: dado de entrada
+            target: saída desejada
+            mask: tensor usado para calcular a perda
+
+        Returns: a perda encontrada para a entrada
+
+        """
         n_total = mask.sum()
         cross_entropy = -torch.log(torch.gather(inp, 1, target.view(-1, 1)).squeeze(1))
         loss = cross_entropy.masked_select(mask).mean()
@@ -118,7 +127,18 @@ class Model:
             max_target_len,
 
     ):
+        """
+        método que treina a rede para cada entrada, calculando as perdas
+        Args:
+            input_variable: variável de entrada do encoder
+            lengths: tamanho da entrad para o encoder
+            target_variable: variável de entrada desejada para o decoder
+            mask: tesonr usado para calcular a perda
+            max_target_len: tamanho máximo da saída
 
+        Returns: a perda final calculada
+
+        """
         # Zero gradients
         self.encoder_optimizer.zero_grad()
         self.decoder_optimizer.zero_grad()
@@ -147,7 +167,6 @@ class Model:
 
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
-
         # Forward batch of sequences through decoder one time step at a time
         if use_teacher_forcing:
             for t in range(max_target_len):
@@ -194,7 +213,14 @@ class Model:
             pairs,
             save_dir
     ):
-
+        """
+        método principal de treinamento;
+        chama o método get_batch_to_train para dividira entrada em lotes e então
+        chama o método _train para cada par da entrada
+        Args:
+            pairs: pares de entrada para o treinamento da rede
+            save_dir: diretório onde vão ser salvos os checkpoints ao longo do treinamento
+        """
         # Load batches for each iteration
         training_batches = [self.processor.get_batch_to_train([random.choice(pairs) for _ in range(self.batch_size)])
                             for _ in range(self.n_iteration)]
@@ -208,7 +234,6 @@ class Model:
 
         # Training loop
         print("Training...")
-        losses = []
 
         for iteration in range(start_iteration, self.n_iteration + 1):
             training_batch = training_batches[iteration - 1]
@@ -231,8 +256,6 @@ class Model:
                 print('''Iteration: {}; Percent complete: {:.1f}%; Average loss: {:.4f}
                 '''.format(iteration, iteration / self.n_iteration * 100, print_loss_avg))
 
-                losses.append(print_loss_avg)
-
                 print_loss = 0
 
             # Save checkpoint
@@ -252,9 +275,15 @@ class Model:
                     'embedding': self.embedding.state_dict()
                 }, os.path.join(directory, f'{iteration}_checkpoint.tar'))
 
-        return losses
-
     def evaluate(self, sentence):
+        """
+        método que obtém o resultado da rede para uma entrada
+        Args:
+            sentence: entrada da rede
+
+        Returns: lista de palavras que compõem resultado da rede
+        """
+
         # Format input sentence as a batch
         # words -> indexes
         indexes_batch = [self.processor.vocabulary.indexes_from_sentence(sentence)]
@@ -272,6 +301,9 @@ class Model:
         return decoded_words
 
     def evaluate_input(self):
+        """
+        método para testar o retorno da rede pelo terminal
+        """
         while True:
             try:
                 # Get input sentence
@@ -291,8 +323,14 @@ class Model:
                 print("Error: Encountered unknown word.")
 
     def run(self, input_filename, checkpoint_filename=None):
+        """
+        método para carregar os dados no modelo
+        Args:
+            input_filename: caminho para o arquivo com os dados de entrada
+            checkpoint_filename: arquivo com os dados do modelo já treinado
+        """
+        self.processor.process_data('data/input/result.csv')
         self.training_data = self.processor.read_data(input_filename)
-
         self.embedding = nn.Embedding(self.processor.vocabulary.num_words, self.hidden_size)
 
         if checkpoint_filename:
@@ -359,6 +397,7 @@ class Model:
         Args:
             save_dir: diretório para salvar o modelo após o treinamento
         """
+
         # Ensure dropout layers are in train mode
         self.encoder.train()
         self.decoder.train()
@@ -380,3 +419,22 @@ class Model:
         losses = self.train_iterators(self.training_data, save_dir)
         print(f'Elapsed time: {datetime.datetime.now().replace(microsecond=0) - t}')
         return losses
+
+
+def retrain_model(start_date=None, end_date=None):
+    """
+    método para fazer um novo treinamento e gerar um novo modelo
+    Args:
+        start_date: data de inicio dos dados para o treinamento
+        end_date: data de fim dos dados para o treinamento
+
+    Returns: o novo modelo treinado
+    """
+    print("starting new training cycle...")
+    model = Model(model_name='pt_model', n_iteration=1000)
+    model.collect_data(start_date=start_date, end_date=end_date, filename='data/input/result.csv', retrain=True)
+    model.run('data/input/result.csv')
+    model.train()
+    print("done!")
+
+    return model

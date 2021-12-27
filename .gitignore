@@ -1,6 +1,8 @@
 venv/
-data/
 postgres-data/
+old_data/
 .idea
 *.pyc
 *.env
+*.tar
+data/output/*

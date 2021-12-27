@@ -88,7 +88,7 @@ class Vocabulary:
         Returns: lista com o índice de cada palavra da frase
 
         """
-        return [self.word2index[word] for word in separate_punctuation(sentence).split(' ')] + [EOS_token]
+        return [self.word2index[word] for word in normalize_string(sentence).split(' ')] + [EOS_token]
 
     def trim_rare_words(self, pairs, min_sentence_length):
         """
@@ -153,20 +153,20 @@ def normalize_string(s):
     return s
 
 
-def separate_punctuation(s):
-    """
-    método para separar a pontuação das palavras em uma string
-    Args:
-        s: string original
-
-    Returns: string com as potuações separadas
-
-    """
-    s = s.replace("?", " ?")
-    s = s.replace(".", " .")
-    s = s.replace("!", " !")
-    s = re.sub(r"\s+", r" ", s).strip()
-    return s
+# def separate_punctuation(s):
+#     """
+#     método para separar a pontuação das palavras em uma string
+#     Args:
+#         s: string original
+#
+#     Returns: string com as potuações separadas
+#
+#     """
+#     s = s.replace("?", " ?")
+#     s = s.replace(".", " .")
+#     s = s.replace("!", " !")
+#     s = re.sub(r"\s+", r" ", s).strip()
+#     return s
 
 
 def format_answer(answer):

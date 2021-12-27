@@ -3,9 +3,10 @@ import logging
 from dataclasses import dataclass
 from src.api.models import Session, Conversation, User, deserialize_session
 from src.utils import count_conversations, PostgresClient, format_answer
+from src.utils import load as load_data
 import typing as T
 from datetime import datetime
-from src.ml_model import Model
+from src.ml_model import Model, retrain_model
 
 
 @dataclass
@@ -53,16 +54,18 @@ class Client:
         # criando os comando básicos do bot
         start_handler = CommandHandler('start', self.start)
         training_handler = CommandHandler('train', self.train)
+        load_handler = CommandHandler('load', self.load)
         message_handler = MessageHandler(Filters.text & (~Filters.command), self.send_message)
 
         self.dispatcher.add_handler(start_handler)
         self.dispatcher.add_handler(training_handler)
         self.dispatcher.add_handler(message_handler)
+        self.dispatcher.add_handler(load_handler)
 
         # instanciando o modelo de rede neural
-        self.ml_client = Model()
+        self.ml_client = Model(model_name="pt_model", n_iteration=1000)
         self.ml_client.run('data/input/result.csv', 'data/output/pt_model/2-2_500/1000_checkpoint.tar')
-
+        # 'data/output/pt_model/2-2_500/1000_checkpoint.tar'
         # self.ml_client.run('data/input/pairs.csv', 'data/output/cb_model/2-2_500/4000_checkpoint.tar')
         # self.ml_client.run('data/input/result.csv')
         # self.ml_client.train()
@@ -115,11 +118,13 @@ class Client:
         self.handle_message(update, answer)
         context.bot.send_message(chat_id=update.effective_chat.id, text=answer)
 
-    def train(self):
+    def train(self, update, context):
         """
         método para responder o comando \train e treinar o bot novamente
         """
-        self.ml_client.collect_data(start_date=None, end_date=None, filename='data/input/result.csv', retrain=True)
+        context.bot.send_message(chat_id=update.effective_chat.id, text="starting training...")
+        self.ml_client = retrain_model()
+        context.bot.send_message(chat_id=update.effective_chat.id, text="done!")
 
     def send_message(self, update, context):
         """
@@ -141,6 +146,7 @@ class Client:
                 self.handle_message(update, answer)
             except KeyError:
                 # caso a rede neural não consiga responder
+                self.handle_message(update, '')
                 answer = "Desculpe, não consegui entender, pode me informar o que eu deveria respoder?"
                 self.sessions[update.effective_chat.id].correct_answer = True
 
